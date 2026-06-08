@@ -31,5 +31,6 @@ if [ "${RUN_SEED:-false}" = "true" ]; then
   python seed.py
 fi
 
-# Start the FastAPI server
-exec uvicorn app.main:app --host 0.0.0.0 --port "${PORT:-8000}"
+# Start the FastAPI server.
+# Railway private networking may require listening on IPv6 (::).
+exec uvicorn app.main:app --host "${BIND_HOST:-0.0.0.0}" --port "${PORT:-8000}"

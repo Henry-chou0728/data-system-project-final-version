@@ -40,6 +40,7 @@ Backend variables:
 ```env
 MYSQL_URL=${{MySQL.MYSQL_URL}}
 PORT=8000
+BIND_HOST=::
 SECRET_KEY=replace-with-a-long-random-secret
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=60
