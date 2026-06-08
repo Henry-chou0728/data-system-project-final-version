@@ -40,7 +40,7 @@ Backend variables:
 ```env
 MYSQL_URL=${{MySQL.MYSQL_URL}}
 PORT=8000
-BIND_HOST=::
+BIND_HOST=0.0.0.0
 SECRET_KEY=replace-with-a-long-random-secret
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=60
@@ -68,17 +68,20 @@ Frontend variables:
 
 ```env
 PORT=80
-BACKEND_HOST=backend.railway.internal
-BACKEND_PORT=8000
+BACKEND_SCHEME=https
+BACKEND_HOST=YOUR_BACKEND_PUBLIC_DOMAIN
+BACKEND_PORT=443
 ```
 
-The frontend Nginx config proxies `/api/*` to:
+For example, if the backend public URL is `https://backend-production-fe197.up.railway.app`, set:
 
-```text
-http://${BACKEND_HOST}:8000/
+```env
+BACKEND_SCHEME=https
+BACKEND_HOST=backend-production-fe197.up.railway.app
+BACKEND_PORT=443
 ```
 
-If you rename the backend service in Railway, update `nginx.conf` accordingly.
+The frontend Nginx config proxies `/api/*` to the backend URL above.
 
 ## 5. Generate a public domain
 

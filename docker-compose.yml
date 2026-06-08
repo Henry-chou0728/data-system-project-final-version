@@ -49,6 +49,7 @@ services:
       context: ./graduation-credit-verification-system
     restart: unless-stopped
     environment:
+      BACKEND_SCHEME: http
       BACKEND_HOST: backend
       BACKEND_PORT: "8000"
     depends_on:
