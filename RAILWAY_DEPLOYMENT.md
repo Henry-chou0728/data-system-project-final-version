@@ -68,6 +68,7 @@ Frontend variables:
 
 ```env
 PORT=80
+VITE_API_URL=https://YOUR_BACKEND_PUBLIC_DOMAIN
 BACKEND_SCHEME=https
 BACKEND_HOST=YOUR_BACKEND_PUBLIC_DOMAIN
 BACKEND_PORT=443
@@ -76,12 +77,13 @@ BACKEND_PORT=443
 For example, if the backend public URL is `https://backend-production-fe197.up.railway.app`, set:
 
 ```env
+VITE_API_URL=https://backend-production-fe197.up.railway.app
 BACKEND_SCHEME=https
 BACKEND_HOST=backend-production-fe197.up.railway.app
 BACKEND_PORT=443
 ```
 
-The frontend Nginx config proxies `/api/*` to the backend URL above.
+The frontend app reads `VITE_API_URL` at container startup and calls the backend URL directly. The Nginx `/api/*` proxy remains as a local Docker fallback.
 
 ## 5. Generate a public domain
 
