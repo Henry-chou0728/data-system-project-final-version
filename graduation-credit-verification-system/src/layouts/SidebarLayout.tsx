@@ -54,6 +54,9 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
 
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('token');
+    localStorage.removeItem('student_id');
+    localStorage.removeItem('student_dashboard');
     navigate('/login');
   };
 

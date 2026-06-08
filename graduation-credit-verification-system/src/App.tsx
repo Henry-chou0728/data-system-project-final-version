@@ -13,59 +13,72 @@ import GraduationCheck from './pages/GraduationCheck';
 import CourseRecommendation from './pages/CourseRecommendation';
 import SidebarLayout from './layouts/SidebarLayout';
 
+function isAuthenticated() {
+  return Boolean(localStorage.getItem('token') && localStorage.getItem('isLoggedIn'));
+}
+
+function ProtectedPage({ children }: { children: React.ReactNode }) {
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <SidebarLayout>{children}</SidebarLayout>;
+}
+
 export default function App() {
   return (
     <Router>
       <Routes>
         {/* Auth Page */}
         <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
 
         {/* Dashboard SaaS Views wrapped in persistent SidebarLayout */}
         <Route 
           path="/dashboard" 
           element={
-            <SidebarLayout>
+            <ProtectedPage>
               <Dashboard />
-            </SidebarLayout>
+            </ProtectedPage>
           } 
         />
         <Route 
           path="/upload" 
           element={
-            <SidebarLayout>
+            <ProtectedPage>
               <EnrollmentUpload />
-            </SidebarLayout>
+            </ProtectedPage>
           } 
         />
         <Route 
           path="/courses" 
           element={
-            <SidebarLayout>
+            <ProtectedPage>
               <CoursesQuery />
-            </SidebarLayout>
+            </ProtectedPage>
           } 
         />
         <Route 
           path="/check" 
           element={
-            <SidebarLayout>
+            <ProtectedPage>
               <GraduationCheck />
-            </SidebarLayout>
+            </ProtectedPage>
           } 
         />
         <Route 
           path="/recommendations" 
           element={
-            <SidebarLayout>
+            <ProtectedPage>
               <CourseRecommendation />
-            </SidebarLayout>
+            </ProtectedPage>
           } 
         />
 
         {/* Fallback Catch and redirect */}
         <Route 
           path="*" 
-          element={<Navigate to="/dashboard" replace />} 
+          element={<Navigate to="/login" replace />} 
         />
       </Routes>
     </Router>
