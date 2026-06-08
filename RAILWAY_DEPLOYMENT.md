@@ -38,7 +38,7 @@ Dockerfile: Dockerfile
 Backend variables:
 
 ```env
-DATABASE_URL=mysql+pymysql://${{MySQL.MYSQLUSER}}:${{MySQL.MYSQLPASSWORD}}@${{MySQL.MYSQLHOST}}:${{MySQL.MYSQLPORT}}/${{MySQL.MYSQLDATABASE}}
+MYSQL_URL=${{MySQL.MYSQL_URL}}
 SECRET_KEY=replace-with-a-long-random-secret
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=60
