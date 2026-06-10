@@ -95,6 +95,7 @@ def seed():
             (CAT_REQUIRED_A,        2,  6),   # 群A 至少 2 門
             (CAT_REQUIRED_B,        1,  3),   # 群B 至少 1 門
             (CAT_REQUIRED_C,        1,  3),   # 群C 至少 1 門
+            (CAT_ELECTIVE,       None, 49),   # 專業選修至少 49 學分
             (CAT_GE_CHINESE,        1,  3),   # 中文通識 1 門 3 學分
             (CAT_GE_INFO,        None,  0),   # 資訊通識 最高 3 學分 (資科系為0-3)
             (CAT_GE_NATURE,      None,  3),   # 自然通識 最少 3 學分

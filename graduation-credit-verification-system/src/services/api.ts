@@ -341,6 +341,11 @@ export const graduationService = {
         let mainType = res.main_type;
         const typeLabel = name.toLowerCase();
 
+        if (res.category_id === 5) {
+            mainType = "專業選修";
+            name = "專業選修學分門檻";
+        }
+
         // Group B~E Reclassification
         if (typeLabel.includes('群b') || typeLabel.includes('群c') || typeLabel.includes('群d') || typeLabel.includes('群e')) {
             mainType = "系選修";

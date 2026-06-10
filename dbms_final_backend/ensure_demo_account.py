@@ -2,6 +2,7 @@ from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
+from app.models.graduation_rule import GraduationRule
 from app.models.student import Student
 from app.models.student_course_record import StudentCourseRecord
 from app.models.user import User
@@ -13,6 +14,9 @@ DEMO_STUDENT_ID = "110306078"
 DEMO_STUDENT_NAME = "聖結石"
 SOURCE_STUDENT_ID = "111001001"
 DEMO_PASSWORD = "password123"
+ADMISSION_YEAR = 111
+ELECTIVE_CATEGORY_ID = 5
+ELECTIVE_MIN_CREDITS = 49
 
 
 def ensure_demo_account():
@@ -60,6 +64,25 @@ def ensure_demo_account():
                     )
                 )
             print(f"Copied {len(source_records)} demo course records from {SOURCE_STUDENT_ID}.")
+
+        elective_rule = db.query(GraduationRule).filter(
+            GraduationRule.admission_year == ADMISSION_YEAR,
+            GraduationRule.category_id == ELECTIVE_CATEGORY_ID,
+        ).first()
+        if elective_rule is None:
+            db.add(
+                GraduationRule(
+                    admission_year=ADMISSION_YEAR,
+                    category_id=ELECTIVE_CATEGORY_ID,
+                    min_courses=None,
+                    min_credits=ELECTIVE_MIN_CREDITS,
+                )
+            )
+            print("Professional elective graduation rule created.")
+        elif elective_rule.min_credits != ELECTIVE_MIN_CREDITS:
+            elective_rule.min_credits = ELECTIVE_MIN_CREDITS
+            elective_rule.min_courses = None
+            print("Professional elective graduation rule updated.")
 
         db.commit()
         print("Demo account check completed.")
