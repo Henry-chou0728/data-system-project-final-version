@@ -180,9 +180,16 @@ export const graduationService = {
     const totalCompleted = completedRequired + completedElective + effectiveGE;
     const totalRequired = 128;
 
-    const requiredRule = creditCheck.results?.find((res: any) => res.category_id === 1);
-    const requiredCompleted = requiredRule?.earned_credits ?? completedRequired;
-    const requiredTarget = requiredRule?.required_credits ?? 45;
+    const requiredRules = (creditCheck.results || []).filter((res: any) => [1, 2].includes(res.category_id));
+    const requiredTarget = requiredRules.reduce(
+      (sum: number, res: any) => sum + (res.required_credits ?? 0),
+      0
+    ) || 51;
+    const requiredCompleted = requiredRules.reduce((sum: number, res: any) => {
+      const earnedCredits = res.earned_credits ?? 0;
+      const requiredCredits = res.required_credits;
+      return sum + (requiredCredits != null ? Math.min(earnedCredits, requiredCredits) : earnedCredits);
+    }, 0) || completedRequired;
 
     const englishTarget = 6;
     const generalTarget = 28; // 28 total GE, which includes English
