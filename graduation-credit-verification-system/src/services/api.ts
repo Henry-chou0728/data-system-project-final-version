@@ -139,7 +139,7 @@ export const graduationService = {
 
   // Dashboard API
   async getDashboardData(): Promise<StudentDashboard> {
-    const studentId = localStorage.getItem('student_id') || '110306078';
+    const studentId = localStorage.getItem('student_id') || '111001001';
 
     const [studentRes, creditCheckRes, recordsRes, detailsMap] = await Promise.all([
       apiClient.get(`/students/${studentId}`),
@@ -180,15 +180,18 @@ export const graduationService = {
     const totalCompleted = completedRequired + completedElective + effectiveGE;
     const totalRequired = 128;
 
-    const requiredTarget = 51; // Hardcoded target for required courses
-    
+    const requiredRule = creditCheck.results?.find((res: any) => res.category_id === 1);
+    const requiredCompleted = requiredRule?.earned_credits ?? completedRequired;
+    const requiredTarget = requiredRule?.required_credits ?? 45;
+
     const englishTarget = 6;
     const generalTarget = 28; // 28 total GE, which includes English
-    const electiveTarget = totalRequired - requiredTarget - generalTarget; // 128 - 51 - 28 = 49
+    const electiveRule = creditCheck.results?.find((res: any) => res.category_id === 5);
+    const electiveTarget = electiveRule?.required_credits ?? 49;
     let peTarget = 4;
 
     const categoryProgress = {
-      required: { completed: completedRequired, target: requiredTarget },
+      required: { completed: requiredCompleted, target: requiredTarget },
       elective: { completed: completedElective, target: electiveTarget },
       general: { completed: Math.min(completedGeneral + completedEnglish, 28), target: generalTarget },
       pe: { completed: completedPe, target: peTarget },
@@ -236,7 +239,7 @@ export const graduationService = {
   },
 
   async addCourseRecord(record: Omit<CourseRecord, 'id'>): Promise<CourseRecord> {
-    const studentId = localStorage.getItem('student_id') || '110306078';
+    const studentId = localStorage.getItem('student_id') || '111001001';
 
     // 1. Check if course exists
     let courseExists = false;
@@ -422,7 +425,7 @@ export const graduationService = {
   },
 
   async getRecommendedCourses(): Promise<RecommendedCourse[]> {
-    const studentId = localStorage.getItem('student_id') || '110306078';
+    const studentId = localStorage.getItem('student_id') || '111001001';
     const response = await apiClient.get(`/recommendations/${studentId}`);
 
     return response.data.map((item: any) => {
