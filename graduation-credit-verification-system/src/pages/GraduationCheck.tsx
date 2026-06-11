@@ -51,6 +51,10 @@ export default function GraduationCheck() {
     }
   };
 
+  // Overall graduation eligibility: every rule must be審定合格 (completed)
+  const allPassed = rules.length > 0 && rules.every(r => r.status === 'completed');
+  const pendingCount = rules.filter(r => r.status !== 'completed').length;
+
   // Filter rules
   const filteredRules = rules.filter(rule => {
     const matchesSearch = rule.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -271,13 +275,26 @@ export default function GraduationCheck() {
           <h4 className="text-sm font-black text-slate-800">畢業學位審查總結 (Overall Verification Result)</h4>
           <p className="text-xs text-slate-500">
             本學年由系辦主任與課務委員實行初審與複審，學生本人需全數亮起<strong>「審定合格」</strong>綠燈方可領取學士學位證書。
+            {!loading && !allPassed && (
+              <span className="block mt-1 text-rose-600 font-semibold">尚有 {pendingCount} 項門檻未達標，請參考上方明細補修。</span>
+            )}
           </p>
         </div>
 
-        <div className="shrink-0 text-center py-2 px-6 bg-rose-50 border border-rose-100 rounded-xl">
-          <div className="text-[10px] font-extrabold text-rose-500 uppercase tracking-widest">目前學位判定</div>
-          <div className="text-base font-black text-rose-700 mt-1">條件尚未滿足 (Pending)</div>
-        </div>
+        {allPassed ? (
+          <div className="shrink-0 text-center py-2 px-6 bg-emerald-50 border border-emerald-150 rounded-xl">
+            <div className="text-[10px] font-extrabold text-emerald-600 uppercase tracking-widest">目前學位判定</div>
+            <div className="text-base font-black text-emerald-700 mt-1 flex items-center gap-1.5 justify-center">
+              <CheckCircle2 className="w-4 h-4" />
+              符合畢業條件 (Eligible)
+            </div>
+          </div>
+        ) : (
+          <div className="shrink-0 text-center py-2 px-6 bg-rose-50 border border-rose-100 rounded-xl">
+            <div className="text-[10px] font-extrabold text-rose-500 uppercase tracking-widest">目前學位判定</div>
+            <div className="text-base font-black text-rose-700 mt-1">條件尚未滿足 (Pending)</div>
+          </div>
+        )}
       </div>
 
     </div>
