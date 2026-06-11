@@ -17,6 +17,7 @@ DEMO_PASSWORD = "password123"
 ADMISSION_YEAR = 111
 ELECTIVE_CATEGORY_ID = 5
 ELECTIVE_MIN_CREDITS = 28
+MISSING_REQUIRED_COURSE_IDS = {"703014001", "703016001", "703022001"}
 
 
 def ensure_demo_account():
@@ -48,6 +49,16 @@ def ensure_demo_account():
         existing_records = db.query(StudentCourseRecord).filter(
             StudentCourseRecord.student_id == DEMO_STUDENT_ID
         ).count()
+
+        removed_records = (
+            db.query(StudentCourseRecord)
+            .filter(StudentCourseRecord.student_id.in_([SOURCE_STUDENT_ID, DEMO_STUDENT_ID]))
+            .filter(StudentCourseRecord.course_id.in_(MISSING_REQUIRED_COURSE_IDS))
+            .filter(StudentCourseRecord.is_passed == False)
+            .delete(synchronize_session=False)
+        )
+        if removed_records:
+            print(f"Removed {removed_records} missing required course placeholder records.")
 
         if existing_records == 0:
             source_records = db.query(StudentCourseRecord).filter(
