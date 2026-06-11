@@ -412,9 +412,13 @@ export const graduationService = {
     const response = await apiClient.get(`/recommendations/${studentId}`);
 
     return response.data.map((item: any) => {
-      let category = "專業選修推薦";
-      if (item.category_id === 1) category = "核心必修（補修）";
-      else if (item.category_id === 3) category = "通識課程補修";
+      const categoryId = Number(item.category_id);
+      let category = "其他修課建議";
+      if (categoryId === 1) category = "核心必修（補修）";
+      else if ([2, 3, 4].includes(categoryId)) category = "群修課程補修";
+      else if (categoryId === 5) category = "專業選修推薦";
+      else if ([6, 7, 8, 9, 10, 11, 12, 13, 14, 15].includes(categoryId)) category = "通識課程補修";
+      else if (categoryId === 16) category = "體育課程補修";
 
       let difficulty: 'Easy' | 'Medium' | 'Hard' = 'Medium';
       if (item.peer_pass_rate >= 0.95) difficulty = 'Easy';
@@ -423,6 +427,7 @@ export const graduationService = {
       return {
         courseId: item.course_id,
         courseName: item.course_name,
+        categoryId,
         category: category,
         credits: item.credits,
         passRate: Math.round(item.peer_pass_rate * 100),

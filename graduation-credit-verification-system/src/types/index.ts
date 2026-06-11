@@ -22,6 +22,7 @@ export interface GradRule {
 export interface RecommendedCourse {
   courseId: string;
   courseName: string;
+  categoryId: number;
   category: string;
   credits: number;
   passRate: number; // e.g., 94 for 94%

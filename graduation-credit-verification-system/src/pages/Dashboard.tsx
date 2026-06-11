@@ -134,7 +134,7 @@ export default function Dashboard() {
   const missingElective = dashboard.categoryProgress.elective.target - dashboard.categoryProgress.elective.completed;
   if (missingElective > 0) {
     const electiveRecommendations = recommendations
-      .filter(rec => rec.category === '專業選修推薦')
+      .filter(rec => rec.categoryId === 5)
       .slice(0, 4)
       .map(rec => `${rec.courseName}（${rec.credits} 學分・通過率 ${rec.passRate}%）`);
     alertsList.push({

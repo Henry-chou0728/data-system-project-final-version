@@ -54,7 +54,9 @@ export default function CourseRecommendation() {
         courseName: course.courseName,
         credits: course.credits,
         grade: "A", // simulated future passing grade
-        type: course.category.includes('必修') ? 'required' : (course.category.includes('通識') ? 'general' : 'elective')
+        type: course.categoryId === 1
+          ? 'required'
+          : (course.categoryId === 16 ? 'pe' : (course.category.includes('通識') ? 'general' : 'elective'))
       });
 
       setEnrolledIds([...enrolledIds, course.courseId]);
