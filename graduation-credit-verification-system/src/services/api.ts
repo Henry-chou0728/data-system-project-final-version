@@ -56,6 +56,15 @@ initLocalStorage();
 // Cache maps for course metadata to prevent redundant API lookups
 let courseDetailsMap: Map<string, { name: string, credits: number, type: 'required' | 'elective' | 'general' | 'pe' | 'english' }> = new Map();
 
+// Broadcast whenever the student's course records change (add/delete/import)
+// so mounted pages (Dashboard / GraduationCheck) can re-fetch credit progress live.
+export const COURSE_RECORDS_CHANGED_EVENT = 'course-records-changed';
+const notifyCourseRecordsChanged = () => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(COURSE_RECORDS_CHANGED_EVENT));
+  }
+};
+
 const resolveCourseDetails = async () => {
   if (courseDetailsMap.size > 0) return courseDetailsMap;
 
@@ -297,6 +306,7 @@ export const graduationService = {
 
     // Clear local cache to force refresh in subsequent calls
     courseDetailsMap.clear();
+    notifyCourseRecordsChanged();
 
     return {
       id: String(response.data.record_id),
@@ -312,6 +322,7 @@ export const graduationService = {
   async deleteCourseRecord(id: string): Promise<void> {
     await apiClient.delete(`/student-course-records/${parseInt(id)}`);
     courseDetailsMap.clear();
+    notifyCourseRecordsChanged();
   },
 
   // Graduation Check Rules API

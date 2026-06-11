@@ -13,7 +13,7 @@ import {
   ArrowUpRight, 
   GraduationCap
 } from 'lucide-react';
-import { graduationService } from '../services/api';
+import { graduationService, COURSE_RECORDS_CHANGED_EVENT } from '../services/api';
 import { StudentDashboard } from '../types';
 
 export default function Dashboard() {
@@ -35,8 +35,23 @@ export default function Dashboard() {
     };
 
     fetchDashboard();
+
+    // 當使用者在其他頁面刪除/新增課程後切回進度總覽（或重新聚焦分頁），
+    // 自動重新抓取，讓各類別學分即時反映最新修課紀錄。
+    const handleRefresh = () => {
+      if (document.visibilityState === 'visible') {
+        fetchDashboard();
+      }
+    };
+    window.addEventListener('focus', handleRefresh);
+    document.addEventListener('visibilitychange', handleRefresh);
+    window.addEventListener(COURSE_RECORDS_CHANGED_EVENT, fetchDashboard);
+
     return () => {
       active = false;
+      window.removeEventListener('focus', handleRefresh);
+      document.removeEventListener('visibilitychange', handleRefresh);
+      window.removeEventListener(COURSE_RECORDS_CHANGED_EVENT, fetchDashboard);
     };
   }, []);
 

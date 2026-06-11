@@ -11,7 +11,7 @@ import {
   SlidersHorizontal,
   FileCheck
 } from 'lucide-react';
-import { graduationService } from '../services/api';
+import { graduationService, COURSE_RECORDS_CHANGED_EVENT } from '../services/api';
 import { GradRule } from '../types';
 
 export default function GraduationCheck() {
@@ -23,9 +23,10 @@ export default function GraduationCheck() {
 
   useEffect(() => {
     let active = true;
-    const fetchRules = async () => {
+
+    const fetchRules = async (showSpinner = true) => {
       try {
-        setLoading(true);
+        if (showSpinner) setLoading(true);
         const data = await graduationService.getGraduationRules();
         if (active) {
           setRules(data);
@@ -38,8 +39,24 @@ export default function GraduationCheck() {
     };
 
     fetchRules();
+
+    // 當使用者在其他頁面刪除/新增課程後切回本頁（或重新聚焦分頁），
+    // 自動重新檢核，避免畢業審查總結停留在舊狀態。
+    const handleRefresh = () => {
+      if (document.visibilityState === 'visible') {
+        fetchRules(false);
+      }
+    };
+    const handleRecordsChanged = () => fetchRules(false);
+    window.addEventListener('focus', handleRefresh);
+    document.addEventListener('visibilitychange', handleRefresh);
+    window.addEventListener(COURSE_RECORDS_CHANGED_EVENT, handleRecordsChanged);
+
     return () => {
       active = false;
+      window.removeEventListener('focus', handleRefresh);
+      document.removeEventListener('visibilitychange', handleRefresh);
+      window.removeEventListener(COURSE_RECORDS_CHANGED_EVENT, handleRecordsChanged);
     };
   }, []);
 
