@@ -29,6 +29,7 @@ export default function CourseRecommendation() {
           // Sort by passRate descending to fulfill "peer pass rate sorting"
           const sorted = [...data].sort((a, b) => b.passRate - a.passRate);
           setCourses(sorted);
+          setEnrolledIds(graduationService.getSimulatedCourseRecordIds());
         }
       } catch (err) {
         console.error(err);
@@ -47,8 +48,8 @@ export default function CourseRecommendation() {
     if (enrolledIds.includes(course.courseId)) return;
 
     try {
-      // Map RecommendedCourse fields back to a CourseRecord
-      await graduationService.addCourseRecord({
+      // Map RecommendedCourse fields back to a temporary CourseRecord simulation.
+      await graduationService.addSimulatedCourseRecord({
         semester: "113學年度第一學期",
         courseId: course.courseId,
         courseName: course.courseName,
@@ -60,7 +61,7 @@ export default function CourseRecommendation() {
       });
 
       setEnrolledIds([...enrolledIds, course.courseId]);
-      showToast(`成功預排入學分門檻！已新增【${course.courseName}】${course.credits}學分，請前往進度總覽面板確認合格狀態。`);
+      showToast(`成功暫時模擬排入【${course.courseName}】${course.credits}學分；重新整理或下次開啟網站後會自動重置。`);
     } catch (e) {
       console.error(e);
     }
@@ -225,7 +226,7 @@ export default function CourseRecommendation() {
         </span>
         <ul className="list-disc pl-4 space-y-1">
           <li><strong>同儕通過率：</strong>分析自資科系近 5 年修課人數在 85 人以上、獲得等第大於等於 <code>C</code> 的畢業生比例。通過率高意味著重修風險極低。</li>
-          <li><strong>一鍵模擬排入：</strong>若您暫沒開課規章，可以點擊此按鈕，系統會將此科目附加進 LocalStorage 學術成績單。此時可以前往「進度總覽」直接檢視您的畢業總學分是否隨之被點亮，極度便於大四學生提前規劃自辦修業抵扣。</li>
+          <li><strong>一鍵模擬排入：</strong>點擊後只會在目前瀏覽器執行階段暫時計入學分檢核，方便前往「進度總覽」檢視補修後的結果；重新整理或下次開啟網站後會自動重置，不會寫入正式資料庫。</li>
         </ul>
       </div>
 

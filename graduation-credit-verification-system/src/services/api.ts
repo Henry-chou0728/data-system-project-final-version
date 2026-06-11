@@ -55,6 +55,7 @@ initLocalStorage();
 
 // Cache maps for course metadata to prevent redundant API lookups
 let courseDetailsMap: Map<string, { name: string, credits: number, type: 'required' | 'elective' | 'general' | 'pe' | 'english' }> = new Map();
+let simulatedCourseRecords: CourseRecord[] = [];
 
 // Broadcast whenever the student's course records change (add/delete/import)
 // so mounted pages (Dashboard / GraduationCheck) can re-fetch credit progress live.
@@ -159,7 +160,22 @@ export const graduationService = {
 
     const student = studentRes.data;
     const creditCheck = creditCheckRes.data;
-    const records = recordsRes.data;
+    const records = [
+      ...recordsRes.data.map((r: any) => ({
+        courseId: r.course_id,
+        isPassed: r.is_passed,
+        fallbackName: r.course_name,
+        fallbackCredits: r.credits,
+        fallbackType: undefined as CourseRecord['type'] | undefined
+      })),
+      ...simulatedCourseRecords.map((r) => ({
+        courseId: r.courseId,
+        isPassed: true,
+        fallbackName: r.courseName,
+        fallbackCredits: r.credits,
+        fallbackType: r.type
+      }))
+    ];
 
     let completedRequired = 0;
     let completedElective = 0;
@@ -168,14 +184,14 @@ export const graduationService = {
     let completedEnglish = 0;
     const failedElectiveCourses: string[] = [];
 
-    records.forEach((r: any) => {
-      const details = detailsMap.get(r.course_id);
-      const credits = details?.credits ?? 0;
-      const type = details?.type ?? 'elective';
+    records.forEach((r) => {
+      const details = detailsMap.get(r.courseId);
+      const credits = details?.credits ?? r.fallbackCredits ?? 0;
+      const type = details?.type ?? r.fallbackType ?? 'elective';
 
-      if (!r.is_passed) {
+      if (!r.isPassed) {
         if (type === 'elective') {
-          failedElectiveCourses.push(details?.name || r.course_id);
+          failedElectiveCourses.push(details?.name || r.fallbackName || r.courseId);
         }
         return;
       }
@@ -189,19 +205,43 @@ export const graduationService = {
       }
     });
 
+    const simulatedTotals = simulatedCourseRecords.reduce(
+      (totals, record) => {
+        if (record.type === 'required') totals.required += record.credits;
+        else if (record.type === 'elective') totals.elective += record.credits;
+        else if (record.type === 'general') totals.general += record.credits;
+        else if (record.type === 'english') totals.english += record.credits;
+        else if (record.type === 'pe') totals.pe += 1;
+        return totals;
+      },
+      { required: 0, elective: 0, general: 0, english: 0, pe: 0 }
+    );
+
     const summary = creditCheck.credit_summary || {};
     const totalRequired = summary.total_target ?? 128;
-    const totalCompleted = summary.total_credits ?? Math.min(completedGeneral + completedEnglish, 28) + completedRequired + completedElective;
 
     const requiredTarget = summary.required_target ?? 51;
-    const requiredCompleted = summary.required_credits ?? completedRequired;
+    const requiredBase = summary.required_credits ?? (completedRequired - simulatedTotals.required);
+    const requiredCompleted = requiredBase + simulatedTotals.required;
     const englishRule = creditCheck.results?.find((res: any) => res.category_id === 15);
     const englishTarget = englishRule?.required_credits ?? 6;
-    const englishPassed = Boolean(englishRule?.is_passed);
+    const englishPassed = Boolean(englishRule?.is_passed) || simulatedTotals.english >= englishTarget;
     const generalTarget = summary.general_education_target ?? 28;
     const electiveTarget = summary.elective_target ?? 49;
-    const electiveCompleted = summary.elective_credits ?? completedElective;
-    const generalCompleted = summary.general_education_credits ?? Math.min(completedGeneral + completedEnglish, 28);
+    const electiveBase = summary.elective_credits ?? (completedElective - simulatedTotals.elective);
+    const electiveCompleted = electiveBase + simulatedTotals.elective;
+    const generalBase = summary.general_education_credits ?? Math.min(
+      completedGeneral + completedEnglish - simulatedTotals.general - simulatedTotals.english,
+      generalTarget
+    );
+    const generalCompleted = Math.min(
+      generalTarget,
+      generalBase + simulatedTotals.general + simulatedTotals.english
+    );
+    const totalCompleted = Math.min(
+      totalRequired,
+      requiredCompleted + electiveCompleted + generalCompleted
+    );
     let peTarget = 4;
 
     const categoryProgress = {
@@ -239,7 +279,7 @@ export const graduationService = {
       resolveCourseDetails()
     ]);
 
-    return recordsRes.data.map((r: any) => {
+    const backendRecords = recordsRes.data.map((r: any) => {
       const details = detailsMap.get(r.course_id);
       return {
         id: String(r.record_id),
@@ -251,6 +291,27 @@ export const graduationService = {
         type: details?.type ?? 'elective'
       };
     });
+
+    return [...backendRecords, ...simulatedCourseRecords];
+  },
+
+  getSimulatedCourseRecordIds(): string[] {
+    return simulatedCourseRecords.map((record) => record.courseId);
+  },
+
+  async addSimulatedCourseRecord(record: Omit<CourseRecord, 'id'>): Promise<CourseRecord> {
+    const existing = simulatedCourseRecords.find((item) => item.courseId === record.courseId);
+    if (existing) return existing;
+
+    const simulatedRecord: CourseRecord = {
+      ...record,
+      id: `sim-${Date.now()}-${record.courseId}`
+    };
+
+    simulatedCourseRecords = [...simulatedCourseRecords, simulatedRecord];
+    localStorage.removeItem('student_dashboard');
+    notifyCourseRecordsChanged();
+    return simulatedRecord;
   },
 
   async addCourseRecord(record: Omit<CourseRecord, 'id'>): Promise<CourseRecord> {
@@ -320,6 +381,13 @@ export const graduationService = {
   },
 
   async deleteCourseRecord(id: string): Promise<void> {
+    if (id.startsWith('sim-')) {
+      simulatedCourseRecords = simulatedCourseRecords.filter((record) => record.id !== id);
+      localStorage.removeItem('student_dashboard');
+      notifyCourseRecordsChanged();
+      return;
+    }
+
     await apiClient.delete(`/student-course-records/${parseInt(id)}`);
     courseDetailsMap.clear();
     notifyCourseRecordsChanged();
