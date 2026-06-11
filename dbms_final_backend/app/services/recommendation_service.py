@@ -5,9 +5,10 @@ from app.models.student import Student
 from app.models.student_course_record import StudentCourseRecord
 from app.models.course import Course
 from app.models.course_category_mapping import CourseCategoryMapping
-from app.models.graduation_rule import GraduationRule
 from app.models.required_course import RequiredCourse
 from app.schemas.recommendation import RecommendedCourse
+from app.repositories.credit_check_repository import CreditCheckRepository
+from app.services.credit_check_service import CreditCheckService, CAT_ELECTIVE
 
 class RecommendationService:
     def __init__(self, db: Session):
@@ -38,55 +39,51 @@ class RecommendationService:
             .order_by(Course.course_id)
         ).scalars().all()
 
-        if missing_required_courses:
-            return [
-                RecommendedCourse(
-                    course_id=course.course_id,
-                    course_name=course.course_name,
-                    category_id=1,
-                    credits=course.credits,
-                    peer_pass_rate=self._get_course_pass_rate(course.course_id),
-                    recommendation_score=2.0
-                )
-                for course in missing_required_courses
-            ]
-
-        # 2. 找出學生「已通過」的各類別學分總和
-        passed_credits = self.db.execute(
-            select(
-                CourseCategoryMapping.category_id,
-                func.sum(Course.credits).label("earned_credits")
+        # 缺修必修排在最前面（不再 early return），稍後與缺漏類別（含專業選修）推薦合併回傳
+        required_recs = [
+            RecommendedCourse(
+                course_id=course.course_id,
+                course_name=course.course_name,
+                category_id=1,
+                credits=course.credits,
+                peer_pass_rate=self._get_course_pass_rate(course.course_id),
+                recommendation_score=2.0
             )
-            .join(StudentCourseRecord, StudentCourseRecord.course_id == CourseCategoryMapping.course_id)
-            .join(Course, Course.course_id == CourseCategoryMapping.course_id)
-            .where(
-                StudentCourseRecord.student_id == student_id,
-                StudentCourseRecord.is_passed == True
-            )
-            .group_by(CourseCategoryMapping.category_id)
-        ).all()
-        earned_dict = {row.category_id: row.earned_credits for row in passed_credits}
+            for course in missing_required_courses
+        ]
+        required_ids = {course.course_id for course in missing_required_courses}
 
-        # 3. 比對畢業規則，找出「缺漏學分」的類別
-        rules = self.db.scalars(
-            select(GraduationRule).where(GraduationRule.admission_year == student.admission_year)
-        ).all()
-        
+        # 2~3. 以正式畢業檢核（CreditCheckService）判定哪些類別尚未達標。
+        #       直接沿用畢業檢核邏輯，確保與「畢業規則檢核」「進度總覽」一致，
+        #       例如專業選修會扣除被群修佔用的學分，避免原始類別加總高估而漏推薦。
         missing_categories = []
-        for rule in rules:
-            earned = earned_dict.get(rule.category_id, 0)
-            if rule.min_credits and earned < rule.min_credits: #如果不符合畢業條件
-                missing_categories.append(rule.category_id)
+        try:
+            credit_check = CreditCheckService(
+                CreditCheckRepository(self.db)
+            ).check_student_graduation(student_id)
+        except Exception:
+            credit_check = None
+
+        if credit_check:
+            for result in credit_check["results"]:
+                cat_id = result["category_id"]
+                # 0=總學分彙總、99=通識彙總，非實際可推薦課程的類別，略過
+                if not result["is_passed"] and cat_id not in (0, 99):
+                    missing_categories.append(cat_id)
+
+            # 各類別皆達標、但總學分仍不足 128 時，以專業選修(5)作為補足來源
+            total_rule = next(
+                (r for r in credit_check["results"] if r["category_id"] == 0),
+                None
+            )
+            if not missing_categories and total_rule and not total_rule["is_passed"]:
+                missing_categories = [CAT_ELECTIVE]
+
+        # 去除重複類別
+        missing_categories = list(dict.fromkeys(missing_categories))
 
         if not missing_categories:
-            # Check if total credits is less than 128
-            # Sum up required (1), elective (2), general (3), and english (5) earned credits
-            total_earned = sum(earned_dict.get(cat_id, 0) for cat_id in [1, 2, 3, 5])
-            if total_earned < 128:
-                # Still need general or elective courses to make up the 128 total
-                missing_categories = [2, 3]
-            else:
-                return [] # 已滿足畢業條件
+            return required_recs  # 已滿足所有類別與總學分門檻，僅回傳缺修必修（若有）
 
         # 4. 計算所有課程的同儕通過率 (通過人數 / 總修課人數)
         peer_stats = self.db.execute(
@@ -116,9 +113,14 @@ class RecommendationService:
 
         # 6. 計算最終推薦權重並排序
         recommendations = []
+        seen_ids = set(required_ids)  # 缺修必修已單列於最前，避免重複
         for course, category_id in candidate_courses:
+            if course.course_id in seen_ids:
+                continue
+            seen_ids.add(course.course_id)
+
             peer_rate = pass_rate_map.get(course.course_id, 0.5) # 若無人修過，預設給予 0.5
-            
+
             # 將通過率轉換為 1 (爽課) 或 0 (硬課)
             score = self._calculate_weight(peer_rate)
 
@@ -137,8 +139,9 @@ class RecommendationService:
         # 條件一：-x.recommendation_score (把 1 變成 -1, 0 變成 0。-1 排在 0 前面，確保爽課在上)
         # 條件二：x.course_id (若同為爽課或同為硬課，則依照課號 A-Z 或數字由小到大排列)
         recommendations.sort(key=lambda x: (-x.recommendation_score, x.course_id))
-        
-        return recommendations
+
+        # 缺修必修排最前，其後接缺漏類別（含專業選修）的推薦
+        return required_recs + recommendations
 
     def _get_course_pass_rate(self, course_id: str) -> float:
         row = self.db.execute(
