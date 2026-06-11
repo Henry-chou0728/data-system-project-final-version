@@ -17,6 +17,7 @@ from app.models.course import Course
 
 # (course_id, 新課名, 學分)
 ELECTIVE_RENAMES = [
+    ("002888001", "多媒體技術 (Multimedia Technology)", 2),
     ("703100001", "機器學習 (Machine Learning)", 3),
     ("703100002", "深度學習 (Deep Learning)", 3),
     ("703100003", "資料探勘 (Data Mining)", 3),

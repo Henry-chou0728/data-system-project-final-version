@@ -169,7 +169,7 @@ def seed():
             ("703010001", "編譯器設計 (Compiler Design)", 3, [CAT_ELECTIVE]),
             ("703042001", "等候理論", 3, [CAT_ELECTIVE]),
             # ── 選修 ──────────────────────────────────────
-            ("002888001", "體育[男女合班]—羽球實務（選修）", 2, [CAT_ELECTIVE]),
+            ("002888001", "多媒體技術 (Multimedia Technology)", 2, [CAT_ELECTIVE]),
             ("703100001", "機器學習 (Machine Learning)", 3, [CAT_ELECTIVE]),
             ("703100002", "深度學習 (Deep Learning)", 3, [CAT_ELECTIVE]),
             ("703100003", "資料探勘 (Data Mining)", 3, [CAT_ELECTIVE]),
