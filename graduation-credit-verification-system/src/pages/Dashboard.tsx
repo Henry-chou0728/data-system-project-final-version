@@ -14,19 +14,24 @@ import {
   GraduationCap
 } from 'lucide-react';
 import { graduationService, COURSE_RECORDS_CHANGED_EVENT } from '../services/api';
-import { StudentDashboard } from '../types';
+import { StudentDashboard, RecommendedCourse } from '../types';
 
 export default function Dashboard() {
   const [dashboard, setDashboard] = useState<StudentDashboard | null>(null);
+  const [recommendations, setRecommendations] = useState<RecommendedCourse[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
     const fetchDashboard = async () => {
       try {
-        const data = await graduationService.getDashboardData();
+        const [data, recs] = await Promise.all([
+          graduationService.getDashboardData(),
+          graduationService.getRecommendedCourses().catch(() => [] as RecommendedCourse[]),
+        ]);
         if (active) {
           setDashboard(data);
+          setRecommendations(recs);
           setLoading(false);
         }
       } catch (err) {
@@ -125,18 +130,24 @@ export default function Dashboard() {
   }
 
   // 3. Elective credits missing
+  // 專業選修學分為可替換性質，不存在特定「缺修課程」，因此改為提供修課建議。
   const missingElective = dashboard.categoryProgress.elective.target - dashboard.categoryProgress.elective.completed;
   if (missingElective > 0) {
+    const electiveRecommendations = recommendations
+      .filter(rec => rec.category === '專業選修推薦')
+      .slice(0, 4)
+      .map(rec => `${rec.courseName}（${rec.credits} 學分・通過率 ${rec.passRate}%）`);
     alertsList.push({
       id: 'elective-missing',
       type: 'warning',
       title: `專業選修學分不足 (缺 ${missingElective} 學分)`,
-      description: `畢業規範要求至少 ${dashboard.categoryProgress.elective.target} 專業選修學分，您目前已修得 ${dashboard.categoryProgress.elective.completed} 學分，尚缺 ${missingElective} 學分。`,
-      missingCourses: dashboard.missingElectiveCourses && dashboard.missingElectiveCourses.length > 0
-        ? dashboard.missingElectiveCourses
-        : [`尚需補足 ${missingElective} 學分專業選修課程`],
-      link: '/courses',
-      linkText: '查看專業選修紀錄 →',
+      description: `畢業規範要求至少 ${dashboard.categoryProgress.elective.target} 專業選修學分，您目前已修得 ${dashboard.categoryProgress.elective.completed} 學分，尚缺 ${missingElective} 學分。建議從下列推薦課程中補足：`,
+      coursesLabel: '修課建議',
+      missingCourses: electiveRecommendations.length > 0
+        ? electiveRecommendations
+        : [`可至「選課推薦」挑選約 ${Math.ceil(missingElective / 3)} 門專業選修課程補足 ${missingElective} 學分`],
+      link: '/recommendations',
+      linkText: '查看完整選課推薦 →',
       icon: 'alert-triangle'
     });
   }
@@ -163,10 +174,9 @@ export default function Dashboard() {
       type: 'danger',
       title: `畢業總學分不足 (缺 ${missingTotal} 學分)`,
       description: `畢業審查要求最低 128 總學分，您目前累計僅修得 ${totalCompleted} 學分，尚缺 ${missingTotal} 學分。您可以透過增修選修科目、通識或自由選修學分來補足。`,
-      missingCourses: [
-        ...(dashboard.missingRequiredCourses || []),
-        ...(dashboard.missingElectiveCourses || []),
-      ],
+      // 總學分缺口僅列出明確的「必修缺修課程」；選修為可替換學分，不列特定課程。
+      missingCourses: dashboard.missingRequiredCourses || [],
+      coursesLabel: '必修缺口課程',
       link: '/upload',
       linkText: '前往上傳修課紀錄 →',
       icon: 'shield-alert'
@@ -435,7 +445,7 @@ export default function Dashboard() {
                       {alert.missingCourses.length > 0 && (
                         <div className="mt-2">
                           <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500 mb-1">
-                            缺口課程
+                            {alert.coursesLabel || '缺口課程'}
                           </div>
                           <ul className="space-y-1">
                             {alert.missingCourses.map((courseName) => (
