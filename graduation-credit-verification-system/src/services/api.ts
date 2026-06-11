@@ -136,6 +136,8 @@ export const graduationService = {
     const token = response.data.access_token;
     localStorage.setItem('token', token);
     localStorage.setItem('student_id', studentId);
+    localStorage.removeItem('student_dashboard');
+    simulatedCourseRecords = [];
 
     // Fetch the dashboard info for the student profile
     const dashboard = await this.getDashboardData();

@@ -6,6 +6,7 @@ from app.repositories.student_repository import StudentRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth_schema import UserRegister, UserLogin, TokenResponse
 from app.services.auth_service import AuthService
+from app.services.demo_reset_service import reset_demo_student_records
 from fastapi.security import OAuth2PasswordRequestForm
 
 router = APIRouter(
@@ -41,7 +42,8 @@ def register(
 @router.post("/login", response_model=TokenResponse)
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    service: AuthService = Depends(get_auth_service)
+    service: AuthService = Depends(get_auth_service),
+    db: Session = Depends(get_db)
 ):
     login_data = UserLogin(
         username=form_data.username,
@@ -52,6 +54,8 @@ def login(
 
     if token is None:
         raise HTTPException(status_code=401, detail="帳號或密碼錯誤")
+
+    reset_demo_student_records(db, form_data.username)
 
     return {
         "access_token": token,
