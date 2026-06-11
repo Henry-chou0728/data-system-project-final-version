@@ -52,6 +52,7 @@ export interface StudentDashboard {
   missingCredits: number;
   missingRequiredCount: number;
   missingRequiredCourses?: string[];
+  missingElectiveCourses?: string[];
   categoryProgress: {
     required: { completed: number; target: number };
     elective: { completed: number; target: number };

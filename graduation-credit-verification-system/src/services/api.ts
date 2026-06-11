@@ -157,12 +157,19 @@ export const graduationService = {
     let completedGeneral = 0;
     let completedPe = 0;
     let completedEnglish = 0;
+    const failedElectiveCourses: string[] = [];
 
     records.forEach((r: any) => {
-      if (!r.is_passed) return;
       const details = detailsMap.get(r.course_id);
       const credits = details?.credits ?? 0;
       const type = details?.type ?? 'elective';
+
+      if (!r.is_passed) {
+        if (type === 'elective') {
+          failedElectiveCourses.push(details?.name || r.course_id);
+        }
+        return;
+      }
 
       if (type === 'required') completedRequired += credits;
       else if (type === 'elective') completedElective += credits;
@@ -208,6 +215,7 @@ export const graduationService = {
       missingCredits: Math.max(0, totalRequired - totalCompleted),
       missingRequiredCount: creditCheck.required_course_check.missing_required,
       missingRequiredCourses: missingCourses,
+      missingElectiveCourses: failedElectiveCourses,
       categoryProgress
     };
 

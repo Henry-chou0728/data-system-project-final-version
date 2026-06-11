@@ -87,6 +87,7 @@ export default function Dashboard() {
         ? `專業必修學分不足 (缺 ${missingRequiredCredits} 學分)`
         : `系必修學科欠修 (${dashboard.missingRequiredCount} 門)`,
       description: `${requiredCreditText}${requiredCourseText || '系統偵測到專業必修門檻尚未達成。'}請優先確認必修課程與補修規劃，避免影響畢業資格。`,
+      missingCourses: dashboard.missingRequiredCourses || [],
       link: '/recommendations',
       linkText: '看推薦安排補修 →',
       icon: 'shield-alert'
@@ -101,6 +102,7 @@ export default function Dashboard() {
       type: 'warning',
       title: `通識學分不足 (缺 ${missingGeneral} 學分)`,
       description: `政大最低要求 ${dashboard.categoryProgress.general.target} 通識學分，目前已修 ${dashboard.categoryProgress.general.completed} 學分，尚缺 ${missingGeneral} 學分。`,
+      missingCourses: [`尚需補足 ${missingGeneral} 學分通識課程`],
       link: '/courses',
       linkText: '查看已修通識科目 →',
       icon: 'alert-triangle'
@@ -115,6 +117,9 @@ export default function Dashboard() {
       type: 'warning',
       title: `專業選修學分不足 (缺 ${missingElective} 學分)`,
       description: `畢業規範要求至少 ${dashboard.categoryProgress.elective.target} 專業選修學分，您目前已修得 ${dashboard.categoryProgress.elective.completed} 學分，尚缺 ${missingElective} 學分。`,
+      missingCourses: dashboard.missingElectiveCourses && dashboard.missingElectiveCourses.length > 0
+        ? dashboard.missingElectiveCourses
+        : [`尚需補足 ${missingElective} 學分專業選修課程`],
       link: '/courses',
       linkText: '查看專業選修紀錄 →',
       icon: 'alert-triangle'
@@ -129,6 +134,7 @@ export default function Dashboard() {
       type: 'warning',
       title: `體育必修學期不足 (缺 ${missingPe} 學期)`,
       description: `體育需修滿 ${dashboard.categoryProgress.pe.target} 學期，目前僅修 ${dashboard.categoryProgress.pe.completed} 學期。`,
+      missingCourses: [`尚需補足 ${missingPe} 學期體育課程`],
       link: '/check',
       linkText: '檢視體育畢業規則 →',
       icon: 'alert-triangle'
@@ -142,6 +148,10 @@ export default function Dashboard() {
       type: 'danger',
       title: `畢業總學分不足 (缺 ${missingTotal} 學分)`,
       description: `畢業審查要求最低 128 總學分，您目前累計僅修得 ${totalCompleted} 學分，尚缺 ${missingTotal} 學分。您可以透過增修選修科目、通識或自由選修學分來補足。`,
+      missingCourses: [
+        ...(dashboard.missingRequiredCourses || []),
+        ...(dashboard.missingElectiveCourses || []),
+      ],
       link: '/upload',
       linkText: '前往上傳修課紀錄 →',
       icon: 'shield-alert'
@@ -407,6 +417,23 @@ export default function Dashboard() {
                       <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
                         {alert.description}
                       </p>
+                      {alert.missingCourses.length > 0 && (
+                        <div className="mt-2">
+                          <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500 mb-1">
+                            缺口課程
+                          </div>
+                          <ul className="space-y-1">
+                            {alert.missingCourses.map((courseName) => (
+                              <li key={`${alert.id}-${courseName}`} className="flex items-start gap-1.5 text-[11px] font-bold text-slate-700">
+                                <span className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${
+                                  alert.type === 'danger' ? 'bg-rose-500' : 'bg-amber-500'
+                                }`}></span>
+                                <span>{courseName}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                       <Link to={alert.link} className={`text-[11px] font-bold block mt-1 ${
                         alert.type === 'danger' ? 'text-rose-700 hover:text-rose-900' : 'text-amber-800 hover:text-amber-950'
                       }`}>
