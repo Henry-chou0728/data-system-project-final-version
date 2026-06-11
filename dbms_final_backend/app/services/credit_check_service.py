@@ -16,6 +16,7 @@ CAT_CORE_NATURE = 12
 CAT_CORE_SOCIAL = 13
 CAT_CORE_HUMANITY = 14
 CAT_GE_ENGLISH = 15
+CAT_PE = 16
 
 GENERAL_REQUIRED_TARGET = 39
 REQUIRED_TOTAL_TARGET = 51
@@ -230,6 +231,7 @@ class CreditCheckService:
             CAT_CORE_SOCIAL,
             CAT_CORE_HUMANITY,
             CAT_GE_ENGLISH,
+            CAT_PE,
         ]:
             records = self.repository.get_passed_records_by_category(
                 student_id=student_id,
@@ -267,11 +269,7 @@ class CreditCheckService:
 
         pe_records = [
             record for course_id, record in passed_by_course.items()
-            if (
-                CAT_REQUIRED_GENERAL in categories_by_course.get(course_id, set())
-                and record.course.credits == 0
-                and "體育" in record.course.course_name
-            )
+            if CAT_PE in categories_by_course.get(course_id, set())
         ]
         pe_missing = max(PE_REQUIRED_COURSES - len(pe_records), 0)
         if pe_missing > 0:

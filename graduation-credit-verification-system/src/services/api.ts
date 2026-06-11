@@ -257,13 +257,13 @@ export const graduationService = {
         taught_by: null
       });
 
-      // Determine category ID based on record type
-      let categoryId = 2; // Default elective
+      // Keep frontend-added course mappings aligned with backend category IDs.
+      let categoryId = 5; // Default elective
       if (record.type === 'required') categoryId = 1;
-      else if (record.type === 'elective') categoryId = 2;
-      else if (record.type === 'general') categoryId = 3;
-      else if (record.type === 'pe') categoryId = 4;
-      else if (record.type === 'english') categoryId = 5;
+      else if (record.type === 'elective') categoryId = 5;
+      else if (record.type === 'general') categoryId = 6;
+      else if (record.type === 'pe') categoryId = 16;
+      else if (record.type === 'english') categoryId = 15;
 
       // Create Mapping
       await apiClient.post('/course-category-mappings/', {
