@@ -30,6 +30,20 @@ class RequiredCourseCheckResult(BaseModel):
     missing_required: int
     is_passed: bool
     missing_courses: list[MissingRequiredCourse]
+    earned_credits: int
+    required_credits: int
+
+
+class CreditSummary(BaseModel):
+    required_credits: int
+    elective_credits: int
+    general_education_credits: int
+    total_credits: int
+    required_target: int
+    elective_target: int
+    general_education_target: int
+    total_target: int
+    is_graduation_ready: bool
 
 
 class CreditCheckResponse(BaseModel):
@@ -37,6 +51,7 @@ class CreditCheckResponse(BaseModel):
     admission_year: int
     required_course_check: RequiredCourseCheckResult
     results: list[CreditCheckRuleResult]
+    credit_summary: CreditSummary
 
 
 class CreditCheckSummaryResponse(BaseModel):

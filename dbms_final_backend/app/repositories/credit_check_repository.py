@@ -77,6 +77,15 @@ class CreditCheckRepository:
 
         return {record.course_id for record in records}
 
+    def get_passed_records_by_student(self, student_id: str):
+        return (
+            self.db.query(StudentCourseRecord)
+            .join(Course, StudentCourseRecord.course_id == Course.course_id)
+            .filter(StudentCourseRecord.student_id == student_id)
+            .filter(StudentCourseRecord.is_passed == True)
+            .all()
+        )
+
     def get_category_by_id(self, category_id: int):
         return (
             self.db.query(CourseCategory)
